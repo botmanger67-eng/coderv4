@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-bot-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sqlite3; sqlite3.connect('/app/data/bot.db').execute('SELECT 1')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: nouchka/sqlite3:latest
+    container_name: telegram-bot-db
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "sqlite3 /data/bot.db 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-network:
+    driver: bridge
